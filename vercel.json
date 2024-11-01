@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/webhooks/order/fulfillment",
+      "destination": "/api/order-fulfillment"
+    }
+  ]
+}
