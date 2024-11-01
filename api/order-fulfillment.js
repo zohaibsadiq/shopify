@@ -34,7 +34,7 @@ module.exports = async (req, res) => {
         compliesOrder,
         {
           auth: {
-            username: process.env.API_EMAIL,
+            email: process.env.API_EMAIL,
             password: process.env.API_TOKEN,
           },
         }
