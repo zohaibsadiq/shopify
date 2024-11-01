@@ -1,5 +1,6 @@
 const axios = require('axios');
 module.exports = async (req, res) => {
+  console.log('i am here');
   if (req.method === 'POST') {
     const shopifyOrder = req.body;
 
