@@ -30,11 +30,11 @@ app.post('/webhooks/order/fulfillment', async (req, res) => {
     recvcountry: shopifyOrder.shipping_address?.country_code || '',
     recvphone: shopifyOrder.shipping_address?.phone || '',
     recvemail: shopifyOrder.email || '',
-    items: shopifyOrder.line_items.map(item => ({
+    items: shopifyOrder.line_items.map((item) => ({
       itemcode: item.sku,
       description: item.title,
       quantity: item.quantity,
-    }))
+    })),
   };
 
   try {
@@ -49,7 +49,7 @@ app.post('/webhooks/order/fulfillment', async (req, res) => {
         },
       }
     );
-    console.log('Order sent to Complies:', response);
+    console.log('Order sent to Complies:', response.data);
     res.status(200).send('Order processed successfully.');
   } catch (err) {
     console.error('Error sending order to Complies:', err.message);
