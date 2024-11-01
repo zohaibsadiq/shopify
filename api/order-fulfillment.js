@@ -1,5 +1,4 @@
 const axios = require('axios');
-
 module.exports = async (req, res) => {
   if (req.method === 'POST') {
     const shopifyOrder = req.body;
@@ -35,7 +34,7 @@ module.exports = async (req, res) => {
         compliesOrder,
         {
           auth: {
-            email: process.env.API_EMAIL,
+            username: process.env.API_EMAIL,
             password: process.env.API_TOKEN,
           },
         }
