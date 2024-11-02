@@ -53,3 +53,8 @@ module.exports = async (req, res) => {
     res.status(405).send('Method Not Allowed');
   }
 };
+
+module.exports = async (req, res) => {
+  console.log('Function triggered');
+  res.status(200).send('Webhook received');
+};
