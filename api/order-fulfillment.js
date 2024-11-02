@@ -44,7 +44,8 @@ module.exports = async (req, res) => {
     if (!process.env.API_EMAIL) missingEnv.push('API_EMAIL');
     if (!process.env.API_TOKEN) missingEnv.push('API_TOKEN');
     if (!process.env.SHOPIFY_API_KEY) missingEnv.push('SHOPIFY_API_KEY');
-    if (!process.env.SHOPIFY_STORE) missingEnv.push('SHOPIFY_STORE');
+    if (!process.env.SHOPIFY_SHOP_NAME) missingEnv.push('SHOPIFY_SHOP_NAME');
+    if (!process.env.SHOPIFY_PASSWORD) missingEnv.push('SHOPIFY_PASSWORD');
 
     if (missingEnv.length) {
       console.error(`Missing environment variables: ${missingEnv.join(', ')}`);
@@ -77,26 +78,27 @@ module.exports = async (req, res) => {
 
     console.log('Order sent to Complies:', compliesResponse.data);
 
-    // Capture the delivery status from the Complies API response (adjust based on response format)
-    const deliveryStatus =
-      compliesResponse.data.statusText || 'Order Sent to Complies';
+    // Capture the delivery status from the Complies API response
+    const deliveryStatus = compliesResponse.data.statusText || 'Order Sent';
 
-    // Prepare data to update the Shopify order note with the delivery status
-    const shopifyUpdateData = {
-      order: {
-        id: shopifyOrder.id,
-        note: `Delivery Status: ${deliveryStatus}`,
+    // Update metafield for delivery status
+    const metafieldData = {
+      metafield: {
+        namespace: 'delivery',
+        key: 'status',
+        value: deliveryStatus,
+        type: 'single_line_text_field', // Adjust type based on your needs
       },
     };
 
-    // Shopify API call to update the order note with retry logic
-    const shopifyResponse = await withRetry(() =>
-      axios.put(
-        `https://${process.env.SHOPIFY_STORE}.myshopify.com/admin/api/2023-07/orders/${shopifyOrder.id}.json`,
-        shopifyUpdateData,
+    // Shopify API call to update the metafield
+    const metafieldResponse = await withRetry(() =>
+      axios.post(
+        `https://${process.env.SHOPIFY_SHOP_NAME}.myshopify.com/admin/api/2023-07/orders/${shopifyOrder.id}/metafields.json`,
+        metafieldData,
         {
           headers: {
-            'X-Shopify-Access-Token': process.env.SHOPIFY_API_KEY,
+            'X-Shopify-Access-Token': process.env.SHOPIFY_PASSWORD, // Use SHOPIFY_PASSWORD for access
             'Content-Type': 'application/json',
           },
           timeout: 5000, // Set a 5-second timeout
@@ -104,14 +106,17 @@ module.exports = async (req, res) => {
       )
     );
 
-    console.log('Order note updated in Shopify:', shopifyResponse.data);
+    console.log(
+      'Delivery status metafield updated in Shopify:',
+      metafieldResponse.data
+    );
 
     // Send back a success response
     res.status(200).json({
       message:
-        'Order processed successfully and delivery status updated in Shopify order note',
+        'Order processed successfully and delivery status updated in Shopify metafield',
       compliesData: compliesResponse.data,
-      shopifyData: shopifyResponse.data,
+      metafieldData: metafieldResponse.data,
     });
   } catch (err) {
     // Specific error handling for axios and other potential issues
