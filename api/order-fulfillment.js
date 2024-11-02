@@ -76,7 +76,7 @@ module.exports = async (req, res) => {
       })
     );
 
-    console.log('Order sent to Complies:', compliesResponse.data);
+    console.log('Order sent to Complies:', compliesResponse);
 
     // Capture the delivery status from the Complies API response (adjust based on response format)
     const deliveryStatus = compliesResponse.data.statusText || 'Sent';
@@ -140,3 +140,4 @@ module.exports = async (req, res) => {
     }
   }
 };
+
