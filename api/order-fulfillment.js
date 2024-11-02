@@ -40,13 +40,19 @@ module.exports = async (req, res) => {
     };
 
     // Verify that environment variables are present
-    if (!process.env.API_EMAIL || !process.env.API_TOKEN) {
-      console.error('API_EMAIL or API_TOKEN environment variable is missing');
+    if (
+      !process.env.API_EMAIL ||
+      !process.env.API_TOKEN ||
+      !process.env.SHOPIFY_API_KEY
+    ) {
+      console.error(
+        'API_EMAIL, API_TOKEN, or SHOPIFY_API_KEY environment variable is missing'
+      );
       return res.status(500).json({ error: 'Server configuration error' });
     }
 
     // Send order details to Complies API
-    const response = await axios.post(
+    const compliesResponse = await axios.post(
       'https://api.complies.nl/0/neworder',
       compliesOrder,
       {
@@ -57,23 +63,57 @@ module.exports = async (req, res) => {
       }
     );
 
-    console.log('Order sent to Complies:', response);
-    res
-      .status(200)
-      .json({ message: 'Order processed successfully', data: response.data });
+    console.log('Order sent to Complies:', compliesResponse);
+
+    // Capture the delivery status from the Complies API response (adjust based on response format)
+    const deliveryStatus =
+      compliesResponse.data.statusText || 'Order Sent to Complies';
+
+    // Prepare data to update the Shopify order note with the delivery status
+    const shopifyUpdateData = {
+      order: {
+        id: shopifyOrder.id,
+        note: `Delivery Status: ${deliveryStatus}`,
+      },
+    };
+
+    // Shopify API call to update the order note with the delivery status
+    const shopifyResponse = await axios.put(
+      `https://${process.env.SHOPIFY_STORE}.myshopify.com/admin/api/2023-07/orders/${shopifyOrder.id}.json`,
+      shopifyUpdateData,
+      {
+        headers: {
+          'X-Shopify-Access-Token': process.env.SHOPIFY_API_KEY,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    console.log('Order note updated in Shopify:', shopifyResponse.data);
+
+    // Send back a success response
+    res.status(200).json({
+      message:
+        'Order processed successfully and delivery status updated in Shopify order note',
+      compliesData: compliesResponse.data,
+      shopifyData: shopifyResponse.data,
+    });
   } catch (err) {
     // Specific error handling for axios and other potential issues
     if (err.response) {
-      console.error('Complies API error:', err.response.data);
+      console.error('Complies API or Shopify API error:', err.response.data);
       res.status(502).json({
-        error: 'Failed to send order to Complies',
+        error: 'Failed to process order or update delivery status',
         details: err.response.data,
       });
     } else if (err.request) {
-      console.error('No response from Complies API:', err.message);
+      console.error(
+        'No response from Complies API or Shopify API:',
+        err.message
+      );
       res
         .status(504)
-        .json({ error: 'No response from Complies API', details: err.message });
+        .json({ error: 'No response from API', details: err.message });
     } else {
       console.error('Unexpected error:', err.message);
       res
