@@ -57,7 +57,7 @@ module.exports = async (req, res) => {
       }
     );
 
-    console.log('Order sent to Complies:', response.data);
+    console.log('Order sent to Complies:', response);
     res
       .status(200)
       .json({ message: 'Order processed successfully', data: response.data });
