@@ -19,7 +19,7 @@ module.exports = async (req, res) => {
     const compliesOrder = {
       orderref: shopifyOrder.id.toString(),
       ordertype: 'DS',
-      deliverymethod: '',
+      deliverymethod: '', // You may want to set a value based on your logic
       partialdelivery: 0,
       shipmentdate: new Date().toISOString(),
       recvcompanyname: shopifyOrder.shipping_address?.company || '-',
@@ -81,21 +81,19 @@ module.exports = async (req, res) => {
     // Capture the delivery status from the Complies API response
     const deliveryStatus = compliesResponse.data.statusText || 'Order Sent';
 
-    // Update metafield for delivery status
-    const metafieldData = {
-      metafield: {
-        namespace: 'delivery',
-        key: 'status',
-        value: deliveryStatus,
-        type: 'single_line_text_field', // Adjust type based on your needs
+    // Prepare data to update the Shopify order note with the delivery status
+    const shopifyUpdateData = {
+      order: {
+        id: shopifyOrder.id,
+        note: `Delivery Status: ${deliveryStatus}`, // This updates the order note
       },
     };
 
-    // Shopify API call to update the metafield
-    const metafieldResponse = await withRetry(() =>
-      axios.post(
-        `https://${process.env.SHOPIFY_SHOP_NAME}.myshopify.com/admin/api/2023-07/orders/${shopifyOrder.id}/metafields.json`,
-        metafieldData,
+    // Shopify API call to update the order note with retry logic
+    const shopifyResponse = await withRetry(() =>
+      axios.put(
+        `https://${process.env.SHOPIFY_SHOP_NAME}.myshopify.com/admin/api/2023-07/orders/${shopifyOrder.id}.json`,
+        shopifyUpdateData,
         {
           headers: {
             'X-Shopify-Access-Token': process.env.SHOPIFY_PASSWORD, // Use SHOPIFY_PASSWORD for access
@@ -106,17 +104,14 @@ module.exports = async (req, res) => {
       )
     );
 
-    console.log(
-      'Delivery status metafield updated in Shopify:',
-      metafieldResponse.data
-    );
+    console.log('Order note updated in Shopify:', shopifyResponse.data);
 
     // Send back a success response
     res.status(200).json({
       message:
-        'Order processed successfully and delivery status updated in Shopify metafield',
+        'Order processed successfully and delivery status updated in Shopify order note',
       compliesData: compliesResponse.data,
-      metafieldData: metafieldResponse.data,
+      shopifyData: shopifyResponse.data,
     });
   } catch (err) {
     // Specific error handling for axios and other potential issues
