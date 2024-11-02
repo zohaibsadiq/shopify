@@ -49,7 +49,7 @@ module.exports = async (req, res) => {
   }
 };
 
-module.exports = async (req, res) => {
-  console.log('Function triggered');
-  res.status(200).send('Webhook received');
-};
+// module.exports = async (req, res) => {
+//   console.log('Function triggered');
+//   res.status(200).send('Webhook received');
+// };
