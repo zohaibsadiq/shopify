@@ -79,14 +79,13 @@ module.exports = async (req, res) => {
     console.log('Order sent to Complies:', compliesResponse.data);
 
     // Capture the delivery status from the Complies API response (adjust based on response format)
-    const deliveryStatus =
-      compliesResponse.data.statusText || 'Order Sent to Complies';
+    const deliveryStatus = compliesResponse.data.statusText || 'Sent';
 
     // Prepare data to update the Shopify order note with the delivery status
     const shopifyUpdateData = {
       order: {
         id: shopifyOrder.id,
-        note: `Delivery Status: ${deliveryStatus}`,
+        deliveryStatus: `${deliveryStatus}`,
       },
     };
 
