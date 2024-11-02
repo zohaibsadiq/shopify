@@ -44,8 +44,7 @@ module.exports = async (req, res) => {
     if (!process.env.API_EMAIL) missingEnv.push('API_EMAIL');
     if (!process.env.API_TOKEN) missingEnv.push('API_TOKEN');
     if (!process.env.SHOPIFY_API_KEY) missingEnv.push('SHOPIFY_API_KEY');
-    if (!process.env.SHOPIFY_SHOP_NAME) missingEnv.push('SHOPIFY_SHOP_NAME');
-    if (!process.env.SHOPIFY_PASSWORD) missingEnv.push('SHOPIFY_PASSWORD');
+    if (!process.env.SHOPIFY_STORE) missingEnv.push('SHOPIFY_STORE');
 
     if (missingEnv.length) {
       console.error(`Missing environment variables: ${missingEnv.join(', ')}`);
@@ -93,11 +92,11 @@ module.exports = async (req, res) => {
     // Shopify API call to update the order note with retry logic
     const shopifyResponse = await withRetry(() =>
       axios.put(
-        `https://${process.env.SHOPIFY_SHOP_NAME}.myshopify.com/admin/api/2023-07/orders/${shopifyOrder.id}.json`,
+        `https://${process.env.SHOPIFY_STORE}.myshopify.com/admin/api/2023-07/orders/${shopifyOrder.id}.json`,
         shopifyUpdateData,
         {
           headers: {
-            'X-Shopify-Access-Token': process.env.SHOPIFY_PASSWORD, // Use SHOPIFY_PASSWORD for access
+            'X-Shopify-Access-Token': process.env.SHOPIFY_API_KEY,
             'Content-Type': 'application/json',
           },
           timeout: 5000, // Set a 5-second timeout
