@@ -1,2 +1,11 @@
 node_modules
 .env
+
+
+## Directories and Files
+
+### `node_modules`
+- This directory contains all the dependencies and packages required for the application. It is automatically generated when you run `npm install` and should not be modified directly. It is usually excluded from version control using `.gitignore`.
+
+### `.env`
+- This file is used to store environment variables for the application. It includes sensitive information such as API keys and credentials, which should not be shared publicly. Make sure to create this file in the root directory and populate it with the necessary configuration details for the application to function correctly.

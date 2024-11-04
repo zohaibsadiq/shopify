@@ -1,45 +1,45 @@
-const axios = require('axios');
+const axios = require('axios'); // Import Axios for making HTTP requests to external APIs
 
 module.exports = async (req, res) => {
   try {
-    // Check if the request method is POST
+    // Check if the request method is POST, only POST requests are allowed
     if (req.method !== 'POST') {
       return res.status(405).json({ error: 'Method Not Allowed' });
     }
 
-    const shopifyOrder = req.body;
+    const shopifyOrder = req.body; // Capture Shopify order data from the request body
     console.log('Received order from Shopify:', shopifyOrder);
 
-    // Check if the order data is present
+    // Validate that necessary order data is present
     if (!shopifyOrder || !shopifyOrder.id || !shopifyOrder.line_items) {
       return res.status(400).json({ error: 'Invalid Shopify order data' });
     }
 
-    // Map Shopify order data to Complies API fields
+    // Map Shopify order details to the format required by Complies API
     const compliesOrder = {
-      orderref: shopifyOrder.id.toString(),
-      ordertype: 'DS',
-      deliverymethod: '', // You may want to set a value based on your logic
-      partialdelivery: 0,
-      shipmentdate: new Date().toISOString(),
-      recvcompanyname: shopifyOrder.shipping_address?.company || '-',
-      recvsurname: shopifyOrder.shipping_address?.last_name || '',
-      recvfirstname: shopifyOrder.shipping_address?.first_name || '',
-      recvinitials: shopifyOrder.shipping_address?.first_name?.charAt(0) || '',
-      recvstreet: shopifyOrder.shipping_address?.address1 || '',
-      recvhousenr: shopifyOrder.shipping_address?.address2 || '',
-      recvzipcode: shopifyOrder.shipping_address?.zip || '',
-      recvcity: shopifyOrder.shipping_address?.city || '',
-      recvcountry: shopifyOrder.shipping_address?.country_code || '',
-      recvphone: shopifyOrder.shipping_address?.phone || '',
-      recvemail: shopifyOrder.email || '',
+      orderref: shopifyOrder.id.toString(), // Use Shopify order ID as the order reference
+      ordertype: 'DS', // Set order type, e.g., 'DS' for Drop Shipment
+      deliverymethod: '', // Set delivery method based on your logic if needed
+      partialdelivery: 0, // Indicates whether partial delivery is allowed
+      shipmentdate: new Date().toISOString(), // Current date as the shipment date
+      recvcompanyname: shopifyOrder.shipping_address?.company || '-', // Recipient company name
+      recvsurname: shopifyOrder.shipping_address?.last_name || '', // Recipient last name
+      recvfirstname: shopifyOrder.shipping_address?.first_name || '', // Recipient first name
+      recvinitials: shopifyOrder.shipping_address?.first_name?.charAt(0) || '', // Recipient initials
+      recvstreet: shopifyOrder.shipping_address?.address1 || '', // Recipient street address
+      recvhousenr: shopifyOrder.shipping_address?.address2 || '', // Recipient house number or additional address info
+      recvzipcode: shopifyOrder.shipping_address?.zip || '', // Recipient postal code
+      recvcity: shopifyOrder.shipping_address?.city || '', // Recipient city
+      recvcountry: shopifyOrder.shipping_address?.country_code || '', // Recipient country code
+      recvphone: shopifyOrder.shipping_address?.phone || '', // Recipient phone number
+      recvemail: shopifyOrder.email || '', // Recipient email address
       items: shopifyOrder.line_items.map((item) => ({
-        itemcode: item.sku || '',
-        quantity: item.quantity,
+        itemcode: item.sku || '', // Product SKU code
+        quantity: item.quantity, // Quantity ordered
       })),
     };
 
-    // Verify that environment variables are present
+    // Verify that all required environment variables are set
     const missingEnv = [];
     if (!process.env.API_EMAIL) missingEnv.push('API_EMAIL');
     if (!process.env.API_TOKEN) missingEnv.push('API_TOKEN');
@@ -52,61 +52,61 @@ module.exports = async (req, res) => {
       return res.status(500).json({ error: 'Server configuration error' });
     }
 
-    // Retry logic function
+    // Retry logic for making API calls with specified retries and delay
     async function withRetry(apiCall, retries = 3, delay = 1000) {
       for (let i = 0; i < retries; i++) {
         try {
-          return await apiCall();
+          return await apiCall(); // Attempt the API call
         } catch (err) {
-          if (i === retries - 1) throw err; // Rethrow if last attempt fails
+          if (i === retries - 1) throw err; // Throw error if last attempt fails
           console.warn(`Retry ${i + 1}/${retries} failed: ${err.message}`);
-          await new Promise((resolve) => setTimeout(resolve, delay));
+          await new Promise((resolve) => setTimeout(resolve, delay)); // Wait before retrying
         }
       }
     }
 
-    // Send order details to Complies API with retry logic
+    // Send order data to Complies API with retry logic
     const compliesResponse = await withRetry(() =>
       axios.post('https://api.complies.nl/0/neworder', compliesOrder, {
         auth: {
-          username: process.env.API_EMAIL,
-          password: process.env.API_TOKEN,
+          username: process.env.API_EMAIL, // API username from environment
+          password: process.env.API_TOKEN, // API password from environment
         },
-        timeout: 5000, // Set a 5-second timeout
+        timeout: 5000, // 5-second timeout for the request
       })
     );
 
     console.log('Order sent to Complies:', compliesResponse);
 
-    // Capture the delivery status from the Complies API response
+    // Extract delivery status from Complies API response
     const deliveryStatus = compliesResponse.data.statusText || 'Order Sent';
 
     // Prepare data to update the Shopify order note with the delivery status
     const shopifyUpdateData = {
       order: {
         id: shopifyOrder.id,
-        note: `Delivery Status: ${deliveryStatus}`, // This updates the order note
+        note: `Delivery Status: ${deliveryStatus}`, // Append delivery status to the Shopify order note
       },
     };
 
-    // Shopify API call to update the order note with retry logic
+    // Update Shopify order note with delivery status using retry logic
     const shopifyResponse = await withRetry(() =>
       axios.put(
         `https://${process.env.SHOPIFY_SHOP_NAME}.myshopify.com/admin/api/2023-07/orders/${shopifyOrder.id}.json`,
         shopifyUpdateData,
         {
           headers: {
-            'X-Shopify-Access-Token': process.env.SHOPIFY_PASSWORD, // Use SHOPIFY_PASSWORD for access
+            'X-Shopify-Access-Token': process.env.SHOPIFY_PASSWORD, // Authorization token for Shopify
             'Content-Type': 'application/json',
           },
-          timeout: 5000, // Set a 5-second timeout
+          timeout: 5000, // 5-second timeout for the request
         }
       )
     );
 
     console.log('Order note updated in Shopify:', shopifyResponse.data);
 
-    // Send back a success response
+    // Respond with success message and API data
     res.status(200).json({
       message:
         'Order processed successfully and delivery status updated in Shopify order note',
@@ -114,7 +114,7 @@ module.exports = async (req, res) => {
       shopifyData: shopifyResponse.data,
     });
   } catch (err) {
-    // Specific error handling for axios and other potential issues
+    // Error handling for API issues and unexpected errors
     if (err.response) {
       console.error(
         `Complies API or Shopify API error on URL ${err.config?.url}:`,
