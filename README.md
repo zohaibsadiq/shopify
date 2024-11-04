@@ -26,18 +26,10 @@ This project is a Node.js and Express application designed to integrate Shopify 
 - **Complies API** credentials
 
 ## Installation
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/yourusername/shopify-app-api.git
-   cd shopify-app-api
-   ```
-
-2. Install dependencies:
+1. Install dependencies:
    ```bash
    npm install
    ```
-
-3. Create a `.env` file in the project root to configure environment variables.
 
 ## Environment Variables
 The application uses environment variables for configuration. 
@@ -47,7 +39,7 @@ Make sure to keep the `.env` file secure and do not share it publicly, as it con
 ### 1. Start the Application
 To start the application, run:
 ```bash
-node index.js
+node PostToShopify.js
 ```
 
 ### 2. Product Synchronization
@@ -63,11 +55,9 @@ To set up automatic fulfillment, configure a Shopify webhook pointing to `/webho
 ## Deployment on Vercel
 This app can be deployed on [Vercel](https://vercel.com/), which provides hosting and serverless functions for Node.js applications.
 
-1. **Deployment**: Push the code to a Git repository (e.g., GitHub), then import the repository on Vercel to deploy it.
+1. **Environment Variables**: In Vercel, go to **Settings > Environment Variables** and add the variables from your `.env` file (e.g., `SHOPIFY_API_KEY`, `SHOPIFY_SHOP_NAME`, `SHOPIFY_PASSWORD`, `API_TOKEN`, `API_EMAIL`).
 
-2. **Environment Variables**: In Vercel, go to **Settings > Environment Variables** and add the variables from your `.env` file (e.g., `SHOPIFY_API_KEY`, `SHOPIFY_SHOP_NAME`, `SHOPIFY_PASSWORD`, `API_TOKEN`, `API_EMAIL`).
-
-3. **Rewrites Configuration**: To redirect webhook requests, add the following configuration to `vercel.json`:
+2. **Rewrites Configuration**: To redirect webhook requests, add the following configuration to `vercel.json`:
 
     ```json
     {
